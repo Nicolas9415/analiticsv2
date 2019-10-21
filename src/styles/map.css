@@ -10,7 +10,7 @@ body {
   background: #fff;
   border-radius: 2px;
   display: inline-block;
-  height: 55vh;
+  min-height: 55vh;
   margin: 1rem;
   position: relative;
   width: 35vw;
