@@ -13,8 +13,6 @@ import { makeStyles } from "@material-ui/core/styles";
 import PieChart from "react-minimal-pie-chart";
 import Chart from "react-google-charts";
 
-console.log(moment);
-
 const useStyles = makeStyles({
   root: {
     overflowX: "auto",
@@ -36,7 +34,7 @@ const useStyles2 = makeStyles({
 function App() {
   const [rutas, setRutas] = useState([]);
   const [, setUsuarios] = useState();
-  const [, setPuntosInteres] = useState();
+  const [puntosInteres, setPuntosInteres] = useState([]);
   const [bar, setBar] = useState([]);
   const [bar2, setBar2] = useState([]);
 
@@ -72,6 +70,7 @@ function App() {
         const data = e.docs.map(e => e.data());
         setUsuarios(data);
       });
+    // eslint-disable-next-line
   }, []);
 
   useEffect(() => {
@@ -87,23 +86,7 @@ function App() {
       newData[i + 1] = [days[i], data[i], getRandomColor()];
     }
     setBar(newData);
-  }, [rutas]);
-
-  useEffect(() => {
-    const data = [0, 0, 0, 0, 0, 0, 0];
-    if (rutas) {
-      rutas.forEach(data => {
-        const day = moment(data.timeStamp).weekday();
-        if (data.calorias) data[day] += data.calorias;
-      });
-    }
-    console.log(data);
-    const newData = [["Element", "User/weekDay", { role: "style" }]];
-    for (let i = 0; i < data.length; i++) {
-      newData[i + 1] = [days[i], data[i], getRandomColor()];
-    }
-    setBar2(newData);
-    console.log(newData);
+    // eslint-disable-next-line
   }, [rutas]);
 
   let coordsStart;
@@ -168,7 +151,44 @@ function App() {
     return color;
   };
 
-  getAvgDistance();
+  useEffect(() => {
+    const a = [];
+    const names = puntosInteres.map((e,i) => {
+      console.log(e.estrellas)
+      a[i] += e.estrellas;
+    });
+
+    console.log(a);
+  }, [puntosInteres]);
+
+  // const getPOIstars = () => {
+  //   const data = [];
+  //   puntosInteres.forEach(e => {
+  //     data[e.nombre] += e.estrellas;
+  //   });
+  //   console.log(data);
+  // };
+  // getPOIstars();
+  useEffect(() => {
+    const arr = [0, 0, 0, 0, 0, 0, 0];
+    const count = [0, 0, 0, 0, 0, 0, 0];
+    if (rutas) {
+      rutas.forEach(data => {
+        const day = moment(data.timeStamp).weekday();
+        if (data.calorias) {
+          arr[day] += data.calorias;
+          count[day] += 1;
+        }
+      });
+    }
+    const newData = [["Element", "Calories/weekDay", { role: "style" }]];
+    for (let i = 0; i < arr.length; i++) {
+      newData[i + 1] = [days[i], arr[i] / count[i], getRandomColor()];
+    }
+    setBar2(newData);
+    // eslint-disable-next-line
+  }, [rutas]);
+
   const classes = useStyles();
   const classes2 = useStyles2();
 
@@ -200,7 +220,7 @@ function App() {
             </TableRow>
             <TableRow>
               <TableCell>2</TableCell>
-              <TableCell>Average Burnt Calories</TableCell>
+              <TableCell>Average Burnt Calories per trip</TableCell>
               <TableCell>{`${getCalories()}  calories`}</TableCell>
             </TableRow>
           </TableBody>
@@ -222,7 +242,7 @@ function App() {
         <Chart chartType="ColumnChart" width="100%" height="400px" data={bar} />
       </div>
       <div className="content">
-        <div className="title">Avg cyclist per day of week</div>
+        <div className="title">Avg burnt calories per day of week</div>
 
         <Chart
           chartType="ColumnChart"
