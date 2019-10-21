@@ -37,6 +37,7 @@ function App() {
   const [puntosInteres, setPuntosInteres] = useState([]);
   const [bar, setBar] = useState([]);
   const [bar2, setBar2] = useState([]);
+  const [puntos, setPuntos] = useState([]);
 
   const days = [
     "Monday",
@@ -136,7 +137,7 @@ function App() {
 
     const c = [];
     Object.entries(b).forEach(function(e) {
-      if (e[0] !== "")
+      if (e[0] !== "" )
         c.push({ title: e[0], value: e[1], color: getRandomColor() });
     });
 
@@ -152,23 +153,21 @@ function App() {
   };
 
   useEffect(() => {
-    const a = [];
-    const names = puntosInteres.map((e,i) => {
-      console.log(e.estrellas)
-      a[i] += e.estrellas;
-    });
+    const obj = puntosInteres.reduce((acc, curr) => {
+      acc.push({
+        name: curr.nombre,
+        raiting: curr.estrellas,
+        address: curr.direccion
+      });
+      return acc;
+    }, []);
 
-    console.log(a);
+    obj.sort((a, b) => {
+      return b.raiting - a.raiting;
+    });
+    setPuntos(obj);
   }, [puntosInteres]);
 
-  // const getPOIstars = () => {
-  //   const data = [];
-  //   puntosInteres.forEach(e => {
-  //     data[e.nombre] += e.estrellas;
-  //   });
-  //   console.log(data);
-  // };
-  // getPOIstars();
   useEffect(() => {
     const arr = [0, 0, 0, 0, 0, 0, 0];
     const count = [0, 0, 0, 0, 0, 0, 0];
@@ -251,6 +250,30 @@ function App() {
           data={bar2}
         />
       </div>
+      <Paper className={classes2.root}>
+        <span className="tabletitle">
+          Points of interest sorted by raiting (Best to Worst)
+        </span>
+        <Table className={classes.root}>
+          <TableHead>
+            <TableRow>
+              <TableCell className={classes.root}>Point of interest</TableCell>
+              <TableCell className={classes.root}>Raiting</TableCell>
+              <TableCell className={classes.root}>Address</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {puntos.length > 0 &&
+              puntos.map(e => (
+                <TableRow key={e.name}>
+                  <TableCell>{e.name}</TableCell>
+                  <TableCell>{e.raiting}</TableCell>
+                  <TableCell>{e.address}</TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </Paper>
     </div>
   );
 }
