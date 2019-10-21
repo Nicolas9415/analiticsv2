@@ -75,7 +75,7 @@ export default function Map(props) {
       </div>
 
       <div className="content">
-        <div className="title">Heat Map most common start points</div>
+        <div className="title">Heat Map most common end points</div>
         <div
           ref={ref2}
           style={{ height: "50vh", width: "30vw", margin: "10px 0" }}
