@@ -10,7 +10,6 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
 import { makeStyles } from "@material-ui/core/styles";
-import PieChart from "react-minimal-pie-chart";
 import Chart from "react-google-charts";
 
 const useStyles = makeStyles({
@@ -33,11 +32,17 @@ const useStyles2 = makeStyles({
 
 function App() {
   const [rutas, setRutas] = useState([]);
-  const [, setUsuarios] = useState();
+  const [usuarios, setUsuarios] = useState();
   const [puntosInteres, setPuntosInteres] = useState([]);
   const [bar, setBar] = useState([]);
   const [bar2, setBar2] = useState([]);
+  const [barHours, setBarHours] = useState([]);
   const [puntos, setPuntos] = useState([]);
+  const [markers, setMarkers] = useState([]);
+  const [address, setAddress] = useState([]);
+  const [barWeekdays, setBarWeekDays] = useState([]);
+  const [barUsers, setBarUser] = useState([]);
+
 
   const days = [
     "Monday",
@@ -71,8 +76,30 @@ function App() {
         const data = e.docs.map(e => e.data());
         setUsuarios(data);
       });
+    db.collection("markersMapa")
+      .get()
+      .then(e => {
+        const data = e.docs.map(e => e.data());
+        setMarkers(data);
+      });
     // eslint-disable-next-line
   }, []);
+
+
+  useEffect(() => {
+    markers.forEach(mark => {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${mark.ubicacion._lat},${mark.ubicacion._long}&key=AIzaSyCqMkRlzo-OHKohU-0ovuLBbNvt6O4wczQ`
+      fetch(url).then(e => {
+        e.json().then(res => {
+          setAddress(prevState => [
+            ...prevState, [mark.descripcion, res.results[1]['formatted_address']]
+          ]
+          )
+        })
+      })
+    })
+
+  }, [markers])
 
   useEffect(() => {
     const data = [0, 0, 0, 0, 0, 0, 0];
@@ -104,8 +131,15 @@ function App() {
       rute["longitudFinal"]
     ]);
   }
+  let coordsParada;
+  if (rutas) {
+    coordsParada = rutas.map(rute => [
+      rute['latitudParada'],
+      rute['longitudParada']
+    ])
+  }
 
-  function getAvgDistance() {
+  function getAvgTripTime() {
     let a = 0;
     if (rutas)
       rutas.forEach(element => {
@@ -113,6 +147,43 @@ function App() {
       });
     const ret = (a / rutas.length).toFixed(1);
     return isNaN(ret) ? 0 : ret;
+  }
+
+
+  function getAvgDistance() {
+    let a = 0;
+    if (rutas)
+      rutas.forEach(element => {
+        if (element.distancia) a += element.distancia;
+      });
+    const ret = (a / rutas.length - 20).toFixed(1);
+    return isNaN(ret) ? 0 : ret;
+  }
+  function getAvgAge() {
+    let age = 0;
+    if (usuarios) {
+      usuarios.forEach(user => {
+        age += moment().diff(user['fechaNacimiento'], 'years');
+
+      })
+      const val = (age / usuarios.length).toFixed(0)
+
+      return val;
+    }
+    return 0;
+  }
+  function getAvgWeight() {
+    let peso = 0;
+    if (usuarios) {
+      usuarios.forEach(user => {
+        peso += user['peso']
+
+      })
+      const val = (peso / usuarios.length).toFixed(0)
+
+      return val;
+    }
+    return 0;
   }
   function getCalories() {
     let a = 0;
@@ -123,26 +194,28 @@ function App() {
     const ret = (a / rutas.length).toFixed(2);
     return isNaN(ret) ? 0 : ret;
   }
-  const getStops = () => {
-    const b = {};
-    if (rutas) {
-      const a = rutas.map(parada => {
-        return parada.nombreParada;
-      });
+  // const getStops = () => {
+  //   const b = {};
+  //   if (rutas) {
+  //     const a = rutas.map(parada => {
+  //       return parada.nombreParada;
+  //     });
 
-      for (let i = 0; i < a.length; i++) {
-        b[a[i]] == null ? (b[a[i]] = 1) : (b[a[i]] += 1);
-      }
-    }
+  //     for (let i = 0; i < a.length; i++) {
+  //       b[a[i]] == null ? (b[a[i]] = 1) : (b[a[i]] += 1);
+  //     }
+  //   }
 
-    const c = [];
-    Object.entries(b).forEach(function(e) {
-      if (e[0] !== "" )
-        c.push({ title: e[0], value: e[1], color: getRandomColor() });
-    });
+  //   const c = [];
+  //   Object.entries(b).forEach(function (e) {
+  //     if (e[0] !== "")
+  //       c.push({ title: e[0], value: e[1], color: getRandomColor() });
+  //   });
 
-    return c;
-  };
+  //   return c;
+  // };
+
+
   const getRandomColor = () => {
     var letters = "0123456789ABCDEF";
     var color = "#";
@@ -151,6 +224,8 @@ function App() {
     }
     return color;
   };
+
+
 
   useEffect(() => {
     const obj = puntosInteres.reduce((acc, curr) => {
@@ -188,6 +263,62 @@ function App() {
     // eslint-disable-next-line
   }, [rutas]);
 
+  useEffect(() => {
+    const arr = [];
+    const data = [];
+    if (usuarios) {
+      usuarios.forEach(e => {
+        arr.push(e.nombre)
+      });
+      usuarios.forEach((e, i) => {
+        data[i] = e.contribuciones
+      })
+    }
+    const newData = [["Element", "Contributions", { role: "style" }]];
+    for (let i = 0; i < arr.length; i++) {
+      newData[i + 1] = [arr[i], data[i], getRandomColor()];
+    }
+    setBarUser(newData);
+
+  }, [usuarios])
+
+
+  useEffect(() => {
+    const arr = [0, 0];
+    const week = ["WeekEnd", "Week"]
+    if (rutas) {
+      rutas.forEach(data => {
+        const day = moment(data.timeStamp).weekday();
+        day === 0 || day === 6 ?
+          arr[0] += 1
+          :
+          arr[1] += 1
+      })
+    }
+    const newData = [["Element", "Weekday/Weekend", { role: "style" }]];
+    for (let i = 0; i < arr.length; i++) {
+      newData[i + 1] = [week[i], arr[i], getRandomColor()];
+    }
+    setBarWeekDays(newData);
+  }, [rutas]);
+
+  useEffect(() => {
+    const hours = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    if (rutas) {
+      rutas.forEach(data => {
+        const hour = moment(data.timeStamp).hour();
+        count[hour] += 1;
+      })
+    }
+    const newData = [["Element", "Cyclist/Hour", { role: "style" }]]
+
+    for (let i = 0; i < hours.length; i++) {
+      newData[i + 1] = [hours[i], count[i], getRandomColor()];
+    }
+    setBarHours(newData);
+  }, [rutas])
+
   const classes = useStyles();
   const classes2 = useStyles2();
 
@@ -197,6 +328,7 @@ function App() {
         <Map
           coordsInicio={coordsStart}
           coordsFinal={coordsFinal}
+          coordsParadas={coordsParada}
           className="map"
         />
       )}
@@ -215,26 +347,32 @@ function App() {
             <TableRow>
               <TableCell>1</TableCell>
               <TableCell>Average Trip Time</TableCell>
-              <TableCell>{`${getAvgDistance()} minutes`}</TableCell>
+              <TableCell>{`${getAvgTripTime()} minutes`}</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>2</TableCell>
+              <TableCell>Average Trip Distance</TableCell>
+              <TableCell>{`${getAvgDistance()} km`}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>3</TableCell>
               <TableCell>Average Burnt Calories per trip</TableCell>
               <TableCell>{`${getCalories()}  calories`}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>4</TableCell>
+              <TableCell>Average age of the users</TableCell>
+              <TableCell>{`${getAvgAge()}  years`}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>5</TableCell>
+              <TableCell>Average weight of the users</TableCell>
+              <TableCell>{`${getAvgWeight()}  Kg`}</TableCell>
             </TableRow>
           </TableBody>
         </Table>
       </Paper>
-      <div className="content">
-        <div className="title">Pie chart of the most visited stops</div>
 
-        <PieChart
-          animate
-          animationDuration={500}
-          style={{ height: "50vh" }}
-          data={getStops()}
-        />
-      </div>
       <div className="content">
         <div className="title">Avg cyclist per day of week</div>
 
@@ -249,6 +387,21 @@ function App() {
           height="400px"
           data={bar2}
         />
+      </div>
+      <div className="content">
+        <div className="title">Avg cyclist per hour</div>
+
+        <Chart chartType="ColumnChart" width="100%" height="400px" data={barHours} />
+      </div>
+      <div className="content">
+        <div className="title">Cyclist by week and weekend</div>
+
+        <Chart chartType="ColumnChart" width="100%" height="400px" data={barWeekdays} />
+      </div>
+      <div className="content">
+        <div className="title">Top contributors to the app</div>
+
+        <Chart chartType="ColumnChart" width="100%" height="400px" data={barUsers} />
       </div>
       <Paper className={classes2.root}>
         <span className="tabletitle">
@@ -269,6 +422,29 @@ function App() {
                   <TableCell>{e.name}</TableCell>
                   <TableCell>{e.raiting}</TableCell>
                   <TableCell>{e.address}</TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </Paper>
+      <Paper className={classes2.root}>
+        <span className="tabletitle">
+          Routes that require mantainence
+        </span>
+        <Table className={classes.root}>
+          <TableHead>
+            <TableRow>
+              <TableCell className={classes.root}>Address</TableCell>
+              <TableCell className={classes.root}>Problem</TableCell>
+
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {address.length > 0 &&
+              address.map((e) => (
+                <TableRow key={e[0]}>
+                  <TableCell>{e[1]}</TableCell>
+                  <TableCell>{e[0]}</TableCell>
                 </TableRow>
               ))}
           </TableBody>
