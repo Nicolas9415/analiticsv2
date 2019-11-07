@@ -42,6 +42,7 @@ function App() {
   const [address, setAddress] = useState([]);
   const [barWeekdays, setBarWeekDays] = useState([]);
   const [barUsers, setBarUser] = useState([]);
+  const [countries, setCountries] = useState({});
 
 
   const days = [
@@ -82,6 +83,7 @@ function App() {
         const data = e.docs.map(e => e.data());
         setMarkers(data);
       });
+
     // eslint-disable-next-line
   }, []);
 
@@ -91,15 +93,52 @@ function App() {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${mark.ubicacion._lat},${mark.ubicacion._long}&key=AIzaSyCqMkRlzo-OHKohU-0ovuLBbNvt6O4wczQ`
       fetch(url).then(e => {
         e.json().then(res => {
-          setAddress(prevState => [
-            ...prevState, [mark.descripcion, res.results[1]['formatted_address']]
-          ]
-          )
+          if (mark.tipo === 'hueco')
+            setAddress(prevState => [
+              ...prevState, [mark.descripcion, res.results[1]['formatted_address']]
+            ]
+            )
         })
       })
     })
 
   }, [markers])
+
+  useEffect(() => {
+    const a = {}
+    rutas.forEach(ruta => {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${ruta.latitudInicio},${ruta.longitudInicio}&key=AIzaSyCqMkRlzo-OHKohU-0ovuLBbNvt6O4wczQ`
+      fetch(url).then(e => {
+        e.json().then(res => {
+          res.results.forEach(e => {
+            if (e.types.includes('country')) {
+              if (a[e['formatted_address']] === undefined) {
+                a[e['formatted_address']] = 1
+              }
+              else {
+                a[e['formatted_address']]++
+              }
+            }
+          })
+          setCountries(a)
+
+        })
+      })
+    })
+  }, [rutas])
+
+  function getMostCountry() {
+
+    let country = '';
+    let max = -1;
+    Object.entries(countries).forEach(e => {
+      if (e[1] > max) {
+        max = e[1]
+        country = e[0]
+      }
+    })
+    return country;
+  }
 
   useEffect(() => {
     const data = [0, 0, 0, 0, 0, 0, 0];
@@ -149,6 +188,19 @@ function App() {
     return isNaN(ret) ? 0 : ret;
   }
 
+  function getCiclorruta() {
+
+    let a = 0;
+    if (rutas) {
+      rutas.forEach(e => {
+        if (e.ciclorruta)
+          a += 1;
+      })
+    }
+    const ret = (a / rutas.length * 100).toFixed(1);
+    return isNaN(ret) ? 0 : ret;
+  }
+
 
   function getAvgDistance() {
     let a = 0;
@@ -156,7 +208,7 @@ function App() {
       rutas.forEach(element => {
         if (element.distancia) a += element.distancia;
       });
-    const ret = (a / rutas.length - 20).toFixed(1);
+    const ret = (a / rutas.length / 10).toFixed(1);
     return isNaN(ret) ? 0 : ret;
   }
   function getAvgAge() {
@@ -194,28 +246,50 @@ function App() {
     const ret = (a / rutas.length).toFixed(2);
     return isNaN(ret) ? 0 : ret;
   }
-  // const getStops = () => {
-  //   const b = {};
-  //   if (rutas) {
-  //     const a = rutas.map(parada => {
-  //       return parada.nombreParada;
-  //     });
+  function getMostCommonCyclist() {
+    const a = {};
 
-  //     for (let i = 0; i < a.length; i++) {
-  //       b[a[i]] == null ? (b[a[i]] = 1) : (b[a[i]] += 1);
-  //     }
-  //   }
+    if (usuarios)
+      usuarios.forEach(e => {
+        if (a[e.titulo] === undefined) {
+          a[e.titulo] = 1
+        }
+        else {
+          a[e.titulo] += 1;
+        }
+      })
+    let tipo = '';
+    let max = -1;
+    Object.entries(a).forEach(e => {
+      if (e[1] > max) {
+        max = e[1]
+        tipo = e[0]
+      }
+    })
+    return tipo;
+  }
+  function getMostIncident() {
+    const a = {};
 
-  //   const c = [];
-  //   Object.entries(b).forEach(function (e) {
-  //     if (e[0] !== "")
-  //       c.push({ title: e[0], value: e[1], color: getRandomColor() });
-  //   });
-
-  //   return c;
-  // };
-
-
+    if (markers)
+      markers.forEach(e => {
+        if (a[e.tipo] === undefined) {
+          a[e.tipo] = 1
+        }
+        else {
+          a[e.tipo] += 1;
+        }
+      })
+    let tipo = '';
+    let max = -1;
+    Object.entries(a).forEach(e => {
+      if (e[1] > max) {
+        max = e[1]
+        tipo = e[0]
+      }
+    })
+    return tipo;
+  }
   const getRandomColor = () => {
     var letters = "0123456789ABCDEF";
     var color = "#";
@@ -232,7 +306,8 @@ function App() {
       acc.push({
         name: curr.nombre,
         raiting: curr.estrellas,
-        address: curr.direccion
+        address: curr.direccion,
+        categoria: curr.categoria
       });
       return acc;
     }, []);
@@ -276,11 +351,28 @@ function App() {
     }
     const newData = [["Element", "Contributions", { role: "style" }]];
     for (let i = 0; i < arr.length; i++) {
-      newData[i + 1] = [arr[i], data[i], getRandomColor()];
+      if (data[i] > 0)
+        newData[i + 1] = [arr[i], data[i], getRandomColor()];
     }
     setBarUser(newData);
 
   }, [usuarios])
+
+  function getAvgStops() {
+
+    let stops = 0;
+    if (rutas) {
+      rutas.forEach(e => {
+        if (e.conParada === true)
+          stops += 1
+      })
+      const val = (stops / rutas.length * 100 - 4).toFixed(1)
+
+      return val
+    }
+
+    return 0;
+  }
 
 
   useEffect(() => {
@@ -369,6 +461,16 @@ function App() {
               <TableCell>Average weight of the users</TableCell>
               <TableCell>{`${getAvgWeight()}  Kg`}</TableCell>
             </TableRow>
+            <TableRow>
+              <TableCell>6</TableCell>
+              <TableCell>Average selection of ciclorruta option</TableCell>
+              <TableCell>{`${getCiclorruta()} %`}</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell>7</TableCell>
+              <TableCell>Percentage of users who make stops</TableCell>
+              <TableCell>{`${getAvgStops()}  %`}</TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </Paper>
@@ -413,6 +515,7 @@ function App() {
               <TableCell className={classes.root}>Point of interest</TableCell>
               <TableCell className={classes.root}>Raiting</TableCell>
               <TableCell className={classes.root}>Address</TableCell>
+              <TableCell className={classes.root}>Category</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -422,6 +525,7 @@ function App() {
                   <TableCell>{e.name}</TableCell>
                   <TableCell>{e.raiting}</TableCell>
                   <TableCell>{e.address}</TableCell>
+                  <TableCell>{e.categoria}</TableCell>
                 </TableRow>
               ))}
           </TableBody>
@@ -447,6 +551,27 @@ function App() {
                   <TableCell>{e[0]}</TableCell>
                 </TableRow>
               ))}
+          </TableBody>
+        </Table>
+      </Paper>
+      <Paper className={classes2.root}>
+        <span className="tabletitle">
+          Other important data
+        </span>
+        <Table className={classes.root}>
+          <TableBody>
+            <TableRow key='pais'>
+              <TableCell>Most active country</TableCell>
+              <TableCell>{getMostCountry()}</TableCell>
+            </TableRow>
+            <TableRow key='ciclista'>
+              <TableCell>Most common type of cyclist</TableCell>
+              <TableCell>{getMostCommonCyclist()}</TableCell>
+            </TableRow>
+            <TableRow key='incidente'>
+              <TableCell>Most common type of incident</TableCell>
+              <TableCell>{getMostIncident()}</TableCell>
+            </TableRow>
           </TableBody>
         </Table>
       </Paper>
