@@ -93,15 +93,15 @@ function App() {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${mark.ubicacion._lat},${mark.ubicacion._long}&key=AIzaSyCqMkRlzo-OHKohU-0ovuLBbNvt6O4wczQ`
       fetch(url).then(e => {
         e.json().then(res => {
-          if (mark.tipo === 'hueco')
+          if (mark.tipo === 'HUECO') {
             setAddress(prevState => [
               ...prevState, [mark.descripcion, res.results[1]['formatted_address']]
             ]
             )
+          }
         })
       })
     })
-
   }, [markers])
 
   useEffect(() => {
@@ -349,12 +349,17 @@ function App() {
         data[i] = e.contribuciones
       })
     }
-    const newData = [["Element", "Contributions", { role: "style" }]];
+    const newData = [["Element", "Contributions/user", { role: "style" }]];
     for (let i = 0; i < arr.length; i++) {
-      if (data[i] > 0)
+      if (data[i] > 0) {
         newData[i + 1] = [arr[i], data[i], getRandomColor()];
+      }
     }
-    setBarUser(newData);
+
+    const celanarr = newData.filter(function () {
+      return true
+    })
+    setBarUser(celanarr);
 
   }, [usuarios])
 
