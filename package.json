@@ -5,7 +5,7 @@
   "dependencies": {
     "@material-ui/core": "4.3.2",
     "@material-ui/icons": "4.2.1",
-    "firebase": "^7.2.1",
+    "firebase": "^10.9.0",
     "google-maps-api-loader": "^1.1.1",
     "moment": "^2.24.0",
     "prop-types": "^15.7.2",
